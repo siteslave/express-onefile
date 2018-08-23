@@ -65,9 +65,11 @@ app.get('/fcm/register', (req, res, next) => {
 
 app.post('/fcm/send', checkAuth, (req, res, next) => {
 
-  const msg = req.body.message;
-  const tokenDevice = req.body.deviceToken;
+  const msg = req.body.msg;
+  const tokenDevice = req.body.tokenDevice;
   const title = req.body.title;
+
+  console.log(req.body);
 
   if (msg && tokenDevice) {
 
@@ -81,8 +83,8 @@ app.post('/fcm/send', checkAuth, (req, res, next) => {
       }
     });
 
-    const registrationTokens = [];
-    registrationTokens.push(tokenDevice);
+    const registrationTokens = tokenDevice.split(',');
+    // registrationTokens.push(tokenDevice);
 
     sender.send(message, { registrationTokens: registrationTokens }, function (err, response) {
       if (err) {

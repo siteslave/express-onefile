@@ -1,19 +1,22 @@
 {
-  "name": "api",
-  "version": "1.0.0",
-  "description": "",
+  "name": "api-gcm",
+  "version": "1.0.1",
+  "description": "Basic JWT/FCM,GCM",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Satit Rianpit <rianpit@gmail.com>",
+  "license": "MIT",
   "dependencies": {
     "body-parser": "^1.18.3",
     "cors": "^2.8.4",
+    "dotenv": "^6.0.0",
     "express": "^4.16.3",
     "fs-extra": "^6.0.1",
     "http-status-codes": "^1.3.0",
-    "jsonwebtoken": "^8.3.0"
+    "jsonwebtoken": "^8.3.0",
+    "node-gcm": "^1.0.2"
   }
 }

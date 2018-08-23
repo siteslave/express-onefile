@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 const express = require('express')
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const HttpStatus = require('http-status-codes');
 const fse = require('fs-extra');
-
+const gcm = require('node-gcm');
 const jwt = require('./jwt');
 const app = express();
 
@@ -53,6 +55,50 @@ app.post('/login', (req, res) => {
 app.get('/users', checkAuth, (req, res, next) => {
   var jsonData = fse.readJsonSync('./users.json');
   res.send({ ok: true, rows: jsonData, code: HttpStatus.OK });
+});
+
+app.get('/fcm/register', (req, res, next) => {
+  const tokenDevice = req.body.tokenDevice;
+  console.log('Device token: ', tokenDevice);
+  res.send({ ok: true, tokenDevice: tokenDevice });
+});
+
+app.post('/fcm/send', checkAuth, (req, res, next) => {
+
+  const msg = req.body.message;
+  const tokenDevice = req.body.deviceToken;
+  const title = req.body.title;
+
+  if (msg && tokenDevice) {
+
+    const sender = new gcm.Sender(process.env.SENDER_KEY);
+    const message = new gcm.Message({
+      contentAvailable: true,
+      notification: {
+        title: title || "ทดสอบ",
+        body: msg,
+        sound: "true",
+      }
+    });
+
+    const registrationTokens = [];
+    registrationTokens.push(tokenDevice);
+
+    sender.send(message, { registrationTokens: registrationTokens }, function (err, response) {
+      if (err) {
+        console.error(err);
+        res.send(err);
+      }
+      else {
+        console.log(response);
+        res.send(response);
+      };
+    });
+
+  } else {
+    res.send({ ok: false, error: 'ข้อมูลไม่ครบ' });
+  }
+
 });
 
 //error handlers

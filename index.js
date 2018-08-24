@@ -13,11 +13,11 @@ const app = express();
 var knex = require('knex')({
   client: 'mysql',
   connection: {
-    host: '127.0.0.1',
-    user: 'root',
-    port: 3307,
-    password: '##devmate##',
-    database: 'phayao'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    port: +process.env.DB_PORT,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
   }
 });
 

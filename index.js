@@ -1,4 +1,5 @@
 require('dotenv').config();
+const Knex = require('knex');
 
 const express = require('express')
 const cors = require('cors');
@@ -8,6 +9,17 @@ const fse = require('fs-extra');
 const gcm = require('node-gcm');
 const jwt = require('./jwt');
 const app = express();
+
+var knex = require('knex')({
+  client: 'mysql',
+  connection: {
+    host: '127.0.0.1',
+    user: 'root',
+    port: 3307,
+    password: '##devmate##',
+    database: 'phayao'
+  }
+});
 
 let checkAuth = (req, res, next) => {
   let token = null;
@@ -57,10 +69,32 @@ app.get('/users', checkAuth, (req, res, next) => {
   res.send({ ok: true, rows: jsonData, code: HttpStatus.OK });
 });
 
-app.get('/fcm/register', (req, res, next) => {
+app.post('/fcm/register', checkAuth, (req, res, next) => {
   const tokenDevice = req.body.tokenDevice;
+  const email = req.body.email;
   console.log('Device token: ', tokenDevice);
-  res.send({ ok: true, tokenDevice: tokenDevice });
+  console.log('Email: ', email);
+
+  var data = { email: email, token_device: tokenDevice };
+
+  knex('users').insert(data)
+    .then(() => {
+      res.send({ ok: true, tokenDevice: tokenDevice, email: email });
+    }).catch((error) => {
+      res.send({ ok: false, error: error });
+    });
+
+});
+
+app.get('/fcm/users', checkAuth, (req, res, next) => {
+
+  knex('users').select()
+    .then((rows) => {
+      res.send({ ok: true, rows: rows });
+    }).catch((error) => {
+      res.send({ ok: false, error: error });
+    });
+
 });
 
 app.post('/fcm/send', checkAuth, (req, res, next) => {

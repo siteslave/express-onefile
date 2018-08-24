@@ -72,10 +72,12 @@ app.get('/users', checkAuth, (req, res, next) => {
 app.post('/fcm/register', checkAuth, (req, res, next) => {
   const tokenDevice = req.body.tokenDevice;
   const email = req.body.email;
+  const displayName = req.body.displayName;
+
   console.log('Device token: ', tokenDevice);
   console.log('Email: ', email);
 
-  var data = { email: email, token_device: tokenDevice };
+  var data = { email: email, token_device: tokenDevice, display_name: displayName };
 
   knex('users').insert(data)
     .then(() => {

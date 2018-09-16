@@ -1,7 +1,7 @@
 require('dotenv').config();
 const Knex = require('knex');
-
-const express = require('express')
+var multer = require('multer');
+const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const HttpStatus = require('http-status-codes');
@@ -9,6 +9,23 @@ const fse = require('fs-extra');
 const gcm = require('node-gcm');
 const jwt = require('./jwt');
 const app = express();
+
+const uploadDir = process.env.UPLOAD_DIR || './uploaded';
+
+fse.ensureDirSync(uploadDir);
+
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir)
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname)
+  }
+})
+
+var upload = multer({ storage: storage });
+
+// var upload = multer({ dest: process.env.UPLOAD_DIR || './uploaded' });
 
 var knex = require('knex')({
   client: 'mysql',
@@ -50,6 +67,11 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 
 app.get('/', (req, res) => res.send({ ok: true, message: 'Welcome to my api serve!', code: HttpStatus.OK }));
+app.post('/upload', upload.single('file'), (req, res) => {
+  console.log(req.body);
+  console.log(req.file);
+  res.send({ ok: true, message: 'File uploaded!', code: HttpStatus.OK });
+});
 
 app.post('/login', (req, res) => {
   var username = req.body.username;

@@ -178,6 +178,22 @@ app.delete('/users/:id', checkAuth, async (req, res, next) => {
   }
 });
 
+app.get('/users/:id', checkAuth, async (req, res, next) => {
+  try {
+    var id = req.params.id;
+
+    if (id) {
+      var rs = await model.getInfo(db, id);
+      res.send({ ok: true, info: rs[0] });
+    } else {
+      res.send({ ok: false, error: 'Invalid data', code: HttpStatus.INTERNAL_SERVER_ERROR });
+    }
+  } catch (error) {
+    console.log(error);
+    res.send({ ok: false, error: error.message, code: HttpStatus.INTERNAL_SERVER_ERROR });
+  }
+});
+
 //error handlers
 if (process.env.NODE_ENV === 'development') {
   app.use((err, req, res, next) => {

@@ -26,6 +26,11 @@ module.exports = {
     return db('users')
       .where('id', id)
       .del();
+  },
+
+  getInfo(db, id) {
+    return db('users')
+      .where('id', id);
   }
 
 };

@@ -10,7 +10,6 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const HttpStatus = require('http-status-codes');
 const fse = require('fs-extra');
-const gcm = require('node-gcm');
 const jwt = require('./jwt');
 const model = require('./model');
 
@@ -109,6 +108,70 @@ app.get('/users', checkAuth, async (req, res, next) => {
   try {
     var rs = await model.getList(db);
     res.send({ ok: true, rows: rs });
+  } catch (error) {
+    console.log(error);
+    res.send({ ok: false, error: error.message, code: HttpStatus.INTERNAL_SERVER_ERROR });
+  }
+});
+
+app.post('/users', checkAuth, async (req, res, next) => {
+  try {
+    var username = req.body.username;
+    var password = req.body.password;
+    var fullname = req.body.fullname;
+    var email = req.body.email;
+
+    if (username && password && email && fullname) {
+      var encPassword = crypto.createHash('md5').update(password).digest('hex');
+      var data = {
+        username: username,
+        password: encPassword,
+        fullname: fullname,
+        email: email
+      };
+      var rs = await model.save(db, data);
+      res.send({ ok: true, id: rs[0] });
+    } else {
+      res.send({ ok: false, error: 'Invalid data', code: HttpStatus.INTERNAL_SERVER_ERROR });
+    }
+  } catch (error) {
+    console.log(error);
+    res.send({ ok: false, error: error.message, code: HttpStatus.INTERNAL_SERVER_ERROR });
+  }
+});
+
+app.put('/users/:id', checkAuth, async (req, res, next) => {
+  try {
+    var id = req.params.id;
+    var fullname = req.body.fullname;
+    var email = req.body.email;
+
+    if (id && email && fullname) {
+      var data = {
+        fullname: fullname,
+        email: email
+      };
+      var rs = await model.update(db, id, data);
+      res.send({ ok: true });
+    } else {
+      res.send({ ok: false, error: 'Invalid data', code: HttpStatus.INTERNAL_SERVER_ERROR });
+    }
+  } catch (error) {
+    console.log(error);
+    res.send({ ok: false, error: error.message, code: HttpStatus.INTERNAL_SERVER_ERROR });
+  }
+});
+
+app.delete('/users/:id', checkAuth, async (req, res, next) => {
+  try {
+    var id = req.params.id;
+
+    if (id) {
+      await model.remove(db, id);
+      res.send({ ok: true });
+    } else {
+      res.send({ ok: false, error: 'Invalid data', code: HttpStatus.INTERNAL_SERVER_ERROR });
+    }
   } catch (error) {
     console.log(error);
     res.send({ ok: false, error: error.message, code: HttpStatus.INTERNAL_SERVER_ERROR });

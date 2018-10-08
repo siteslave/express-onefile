@@ -1,5 +1,5 @@
 var jwt = require('jsonwebtoken');
-var secretKey = '123456678996755435sdfgddsf';
+var secretKey = process.env.SECRET_KEY;
 
 module.exports = {
   sign(playload) {

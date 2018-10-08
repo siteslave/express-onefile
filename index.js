@@ -1,6 +1,10 @@
+'use strict';
+
 require('dotenv').config();
 const Knex = require('knex');
+const crypto = require('crypto');
 var multer = require('multer');
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -8,6 +12,8 @@ const HttpStatus = require('http-status-codes');
 const fse = require('fs-extra');
 const gcm = require('node-gcm');
 const jwt = require('./jwt');
+const model = require('./model');
+
 const app = express();
 
 const uploadDir = process.env.UPLOAD_DIR || './uploaded';
@@ -27,7 +33,7 @@ var upload = multer({ storage: storage });
 
 // var upload = multer({ dest: process.env.UPLOAD_DIR || './uploaded' });
 
-var knex = require('knex')({
+var db = require('knex')({
   client: 'mysql',
   connection: {
     host: process.env.DB_HOST,
@@ -73,92 +79,40 @@ app.post('/upload', upload.single('file'), (req, res) => {
   res.send({ ok: true, message: 'File uploaded!', code: HttpStatus.OK });
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   var username = req.body.username;
   var password = req.body.password;
 
-  if (username === 'admin' && password === 'admin') {
-    var token = jwt.sign({ username: username });
-    res.send({ ok: true, token: token });
+  if (username && password) {
+    var encPassword = crypto.createHash('md5').update(password).digest('hex');
+
+    try {
+      var rs = await model.doLogin(db, username, encPassword);
+      if (rs.length) {
+        var token = jwt.sign({ username: username });
+        res.send({ ok: true, token: token });
+      } else {
+        res.send({ ok: false, error: 'Invalid username or password!', code: HttpStatus.UNAUTHORIZED });
+      }
+    } catch (error) {
+      console.log(error);
+      res.send({ ok: false, error: error.message, code: HttpStatus.INTERNAL_SERVER_ERROR });
+    }
+
   } else {
-    res.send({ ok: false, error: 'Invalid username or password!', code: HttpStatus.OK });
+    res.send({ ok: false, error: 'Invalid data!', code: HttpStatus.INTERNAL_SERVER_ERROR });
   }
 
 });
 
-app.get('/users', checkAuth, (req, res, next) => {
-  var jsonData = fse.readJsonSync('./users.json');
-  res.send({ ok: true, rows: jsonData, code: HttpStatus.OK });
-});
-
-app.post('/fcm/register', checkAuth, (req, res, next) => {
-  const tokenDevice = req.body.tokenDevice;
-  const email = req.body.email;
-  const displayName = req.body.displayName;
-
-  console.log('Device token: ', tokenDevice);
-  console.log('Email: ', email);
-
-  var data = { email: email, token_device: tokenDevice, display_name: displayName };
-
-  knex('users').insert(data)
-    .then(() => {
-      res.send({ ok: true, tokenDevice: tokenDevice, email: email });
-    }).catch((error) => {
-      res.send({ ok: false, error: error });
-    });
-
-});
-
-app.get('/fcm/users', checkAuth, (req, res, next) => {
-
-  knex('users').select()
-    .then((rows) => {
-      res.send({ ok: true, rows: rows });
-    }).catch((error) => {
-      res.send({ ok: false, error: error });
-    });
-
-});
-
-app.post('/fcm/send', checkAuth, (req, res, next) => {
-
-  const msg = req.body.msg;
-  const tokenDevice = req.body.tokenDevice;
-  const title = req.body.title;
-
-  console.log(req.body);
-
-  if (msg && tokenDevice) {
-
-    const sender = new gcm.Sender(process.env.SENDER_KEY);
-    const message = new gcm.Message({
-      contentAvailable: true,
-      notification: {
-        title: title || "ทดสอบ",
-        body: msg,
-        sound: "true",
-      }
-    });
-
-    const registrationTokens = tokenDevice.split(',');
-    // registrationTokens.push(tokenDevice);
-
-    sender.send(message, { registrationTokens: registrationTokens }, function (err, response) {
-      if (err) {
-        console.error(err);
-        res.send(err);
-      }
-      else {
-        console.log(response);
-        res.send(response);
-      };
-    });
-
-  } else {
-    res.send({ ok: false, error: 'ข้อมูลไม่ครบ' });
+app.get('/users', checkAuth, async (req, res, next) => {
+  try {
+    var rs = await model.getList(db);
+    res.send({ ok: true, rows: rs });
+  } catch (error) {
+    console.log(error);
+    res.send({ ok: false, error: error.message, code: HttpStatus.INTERNAL_SERVER_ERROR });
   }
-
 });
 
 //error handlers
@@ -185,4 +139,6 @@ app.use((req, res, next) => {
   });
 });
 
-app.listen(3000, () => console.log('Example app listening on port 3000!'));
+var port = +process.env.WWW_PORT || 3000;
+
+app.listen(port, () => console.log(`Api listening on port ${port}!`));
